@@ -1,8 +1,8 @@
 use crate::{utilities::UniversalData, utils::BetterExpect};
 use colored::Colorize;
-use std::process::exit;
+use std::{path::PathBuf, process::exit};
 
-pub fn csv_writer(data: &UniversalData, path: &str) {
+pub fn csv_writer(data: &UniversalData, path: &PathBuf) {
     // Check if it's a table before writing.
     if let UniversalData::Table { headers, rows } = data {
         // Open CSV file for writing.

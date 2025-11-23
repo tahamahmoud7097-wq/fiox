@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     utilities::{UniversalData, Vals},
     utils::BetterExpect,
@@ -5,7 +7,7 @@ use crate::{
 use serde_json::Value as JsonVal;
 use toml::Value as TomlVal;
 
-pub fn read_from_txt(path: &str, output_ext: &str) -> UniversalData {
+pub fn read_from_txt(path: &PathBuf, output_ext: &str) -> UniversalData {
     // matches output file extension to determine how to serialize
     let content = std::fs::read_to_string(path).better_expect("ERROR: Failed to read input file.");
     match output_ext {

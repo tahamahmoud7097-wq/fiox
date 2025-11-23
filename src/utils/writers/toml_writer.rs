@@ -1,15 +1,19 @@
+use std::path::PathBuf;
+
 use crate::{utilities::UniversalData, utils::BetterExpect};
 use toml::Value as toml_val;
 
-pub fn toml_writer(data: &UniversalData, path: &str) {
+pub fn toml_writer(data: &UniversalData, path: &PathBuf) {
     // Check if input data is a table or struct-based (like JSON and TOML) data.
     if let UniversalData::Structured(non_toml) = data {
         // Serialize to TOML
         let toml_ser = toml_val::try_from(non_toml)
             .better_expect("ERROR: Couldn't serialize input file into TOML format.");
+
         // First, check if the data has a top level array to which TOML doesn't support to handle it
         if let toml_val::Array(arr) = toml_ser {
             let mut output: String = String::new();
+
             arr.iter().for_each(|item| {
                 if let toml_val::Table(obj) = item {
                     output.push_str("[[Array]]\n");
@@ -17,9 +21,11 @@ pub fn toml_writer(data: &UniversalData, path: &str) {
                     output.push('\n');
                 }
             });
+
             // Write into the file.
             std::fs::write(path, output.trim_end())
                 .better_expect("ERROR: Failed to write final file.");
+
         // If it doesn't have a top level Array, it will just write into the file.
         } else {
             std::fs::write(
@@ -28,6 +34,7 @@ pub fn toml_writer(data: &UniversalData, path: &str) {
             )
             .better_expect("ERROR: Failed to write into output file.");
         }
+
     // If table based, write into the file by making keys of the TOML tables (objects) the headers (column names) of the table.
     } else if let UniversalData::Table { headers, rows } = data {
         // Iterator chain for writing into the file by using the `.zip()` method on keys (table headers) and values.
@@ -35,12 +42,15 @@ pub fn toml_writer(data: &UniversalData, path: &str) {
             .iter()
             .map(|h| h.replace('\\', "\\\\").replace('"', "\\\""))
             .collect();
+
         let mut toml_str: String = String::new();
+
         rows.iter().for_each(|row| {
             toml_str.push_str("[[Rows]]\n");
             new_headers.iter().zip(row.iter()).for_each(|(h, v)| {
                 let v = v.replace('\\', "\\\\").replace('"', "\\\"");
                 h.trim().to_string();
+
                 if h.bytes()
                     .any(|c| !(c.is_ascii_alphanumeric() || c == b'_' || c == b'-'))
                 {
@@ -49,8 +59,10 @@ pub fn toml_writer(data: &UniversalData, path: &str) {
                     toml_str.push_str(&format!("{} = \"{}\"\n", h, v));
                 }
             });
+
             toml_str.push('\n');
         });
+
         std::fs::write(path, toml_str.trim_end())
             .better_expect("ERROR: Failed to write into output file.");
     }
