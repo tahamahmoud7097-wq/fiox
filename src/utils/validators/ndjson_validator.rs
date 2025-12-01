@@ -21,11 +21,8 @@ pub fn validate_ndjson(path: &PathBuf, verbose: bool) {
     // read lines one by one and deserialize them to check for errors
     reader.lines().enumerate().for_each(|(idx, line)| {
         serde_json::from_str::<serde_json::Value>(
-            line.better_expect(
-                format!("ERROR: Couldn't read line {}", idx + 1).as_str(),
-                verbose,
-            )
-            .as_str(),
+            line.better_expect(format!("ERROR: Couldn't read line {}", idx + 1).as_str(), verbose)
+                .as_str(),
         )
         .better_expect(
             format!(

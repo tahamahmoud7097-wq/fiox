@@ -35,10 +35,7 @@ fn json_test() -> Result<(), std::io::Error> {
 
     crate::write_json::write_json(&json_data, &temp_path, false);
 
-    assert_eq!(
-        crate::json_reader::json_reader(&temp_path, false),
-        json_data
-    );
+    assert_eq!(crate::json_reader::json_reader(&temp_path, false), json_data);
     crate::json_validator::validate_json(&temp_path, false);
 
     let headers: Vec<String> = vec!["NAME".to_string(), "AGE".to_string(), "ID".to_string()];
@@ -53,10 +50,7 @@ fn json_test() -> Result<(), std::io::Error> {
 
     crate::write_json::write_json(&csv_data, &temp_path, false);
 
-    assert_eq!(
-        crate::json_reader::json_reader(&temp_path, false),
-        json_data
-    );
+    assert_eq!(crate::json_reader::json_reader(&temp_path, false), json_data);
     crate::json_validator::validate_json(&temp_path, false);
 
     Ok(())

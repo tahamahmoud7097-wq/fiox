@@ -15,11 +15,9 @@ pub fn csv_writer(data: &UniversalData, path: &PathBuf, verbose: bool) {
 
         // Loop for writing rows into the file.
         for row in rows {
-            wtr.write_record(row)
-                .better_expect("ERROR: Failed to write CSV file rows.", verbose);
+            wtr.write_record(row).better_expect("ERROR: Failed to write CSV file rows.", verbose);
         }
-        wtr.flush()
-            .better_expect("ERROR: Failed to flush final CSV.", verbose);
+        wtr.flush().better_expect("ERROR: Failed to flush final CSV.", verbose);
 
     // If data is not a table, then panics to prevent broken conversions.
     } else {

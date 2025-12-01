@@ -13,16 +13,10 @@ use utils::*;
 fn main() {
     let args: FioxArgs = cli::FioxArgs::parse();
 
-    let repo_link = "https://github.com/tahamahmoud7097-wq/fiox"
-        .truecolor(16, 101, 230)
-        .bold();
+    let repo_link = "https://github.com/tahamahmoud7097-wq/fiox".truecolor(16, 101, 230).bold();
 
     match args.cmd {
-        Commands::Convert {
-            verbose,
-            input,
-            output,
-        } => {
+        Commands::Convert { verbose, input, output } => {
             // Check if input exists
             if !Path::new(&input).exists() {
                 eprintln!("{}", "ERROR: Input file doesn't exist.".red().bold());
@@ -96,11 +90,7 @@ fn main() {
             println!(
                 "Finished converting {} -> {} in {:?}",
                 input.to_str().unwrap_or("input file").bright_green().bold(),
-                output
-                    .to_str()
-                    .unwrap_or("output file")
-                    .bright_green()
-                    .bold(),
+                output.to_str().unwrap_or("output file").bright_green().bold(),
                 now.elapsed()
             );
         }
@@ -108,12 +98,7 @@ fn main() {
         Commands::Validate { input, verbose } => {
             // Check if input exists
             if !Path::new(&input).exists() {
-                eprintln!(
-                    "{}",
-                    "ERROR: Input file doesn't exist for validation."
-                        .red()
-                        .bold()
-                );
+                eprintln!("{}", "ERROR: Input file doesn't exist for validation.".red().bold());
                 exit(1);
             }
 
@@ -144,12 +129,9 @@ fn main() {
             };
             println!(
                 "{}",
-                format!(
-                    "Input file [{}] is valid!",
-                    input.to_str().unwrap_or("inputFile")
-                )
-                .green()
-                .bold()
+                format!("Input file [{}] is valid!", input.to_str().unwrap_or("inputFile"))
+                    .green()
+                    .bold()
             );
         }
     }

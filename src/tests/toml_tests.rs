@@ -38,10 +38,7 @@ ID = 4986
 
     crate::toml_writer::toml_writer(&toml_data, &temp_path, false);
 
-    assert_eq!(
-        crate::toml_reader::toml_reader(&temp_path, false),
-        toml_data
-    );
+    assert_eq!(crate::toml_reader::toml_reader(&temp_path, false), toml_data);
 
     crate::toml_validator::validate_toml(&temp_path, false);
 
@@ -57,10 +54,7 @@ ID = 4986
 
     crate::toml_writer::toml_writer(&csv_data, &temp_path, false);
 
-    assert_eq!(
-        crate::toml_reader::toml_reader(&temp_path, false),
-        toml_data
-    );
+    assert_eq!(crate::toml_reader::toml_reader(&temp_path, false), toml_data);
 
     crate::toml_validator::validate_toml(&temp_path, false);
 
