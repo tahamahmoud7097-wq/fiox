@@ -1,17 +1,17 @@
-use std::path::PathBuf;
+use std::{fs::File, io::BufReader, path::PathBuf};
 
-use crate::{
-    utilities::{UniversalData, Vals},
-    utils::BetterExpect,
-};
-use serde_json::Value as JsonVal;
+use crate::utils::{BetterExpect, DecoderStreams};
 
-pub fn json_reader(path: &PathBuf, verbose: bool) -> UniversalData {
-    // Reads then converts to TOML format
-    let content =
-        std::fs::read_to_string(path).better_expect("ERROR: Failed to read input file.", verbose);
+pub fn json_reader(path: &PathBuf, verbose: bool) -> DecoderStreams {
+    let file = File::open(path).better_expect(
+        format!("ERROR: Couldn't open input file [{}].", path.to_str().unwrap_or("[input.json]"))
+            .as_str(),
+        verbose,
+    );
 
-    let json_des: JsonVal =
-        serde_json::from_str(&content).better_expect("ERROR: Failed to deserialize file.", verbose);
-    UniversalData::Structured(Vals::Json(json_des))
+    let buffered = BufReader::with_capacity(16384, file);
+
+    let reader = serde_json::Deserializer::from_reader(buffered);
+
+    DecoderStreams::Json { stream: reader }
 }

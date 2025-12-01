@@ -1,30 +1,15 @@
-use std::path::PathBuf;
+use std::{fs::File, io::BufReader, path::PathBuf};
 
-use crate::{utilities::UniversalData, utils::BetterExpect};
+use crate::{utilities::BetterExpect, utils::DecoderStreams};
 
-pub fn csv_reader(path: &PathBuf, verbose: bool) -> UniversalData {
-    // Reads into enum type UniversalData::Table
-    let mut read =
-        csv::Reader::from_path(path).better_expect("ERROR: Failed to read input file.", verbose);
+pub fn csv_reader(path: &PathBuf, verbose: bool) -> DecoderStreams {
+    let file = File::open(path).better_expect(
+        format!("ERROR: Couldn't open input file [{}].", path.to_str().unwrap_or("[input.csv]"))
+            .as_str(),
+        verbose,
+    );
 
-    // file headers
-    let headers: Vec<String> = read
-        .headers()
-        .better_expect("ERROR: Failed to read headers. Make sure CSV file has headers for conversions to work.", verbose)
-        .iter()
-        .map(|h| h.to_string())
-        .collect();
+    let reader = BufReader::with_capacity(16384, file);
 
-    // file rows
-    let rows: Vec<Vec<String>> = read
-        .records()
-        .map(|r| {
-            r.unwrap_or_default()
-                .iter()
-                .map(|s| s.to_string())
-                .collect()
-        })
-        .collect();
-
-    UniversalData::Table { headers, rows }
+    DecoderStreams::CsvStream { stream: reader }
 }

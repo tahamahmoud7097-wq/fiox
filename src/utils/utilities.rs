@@ -1,42 +1,25 @@
+use std::fs::File;
+use std::io::BufReader;
 use std::process::exit;
 
 use colored::Colorize;
-use serde::ser::{Serialize, Serializer};
-use serde_json::Value as JsonVal;
+use serde_json::de::IoRead;
 use toml::Value as TomlVal;
-// Main enums for a universal data type so all readers and writers can share one type
 
-// enum for all serde_ext::Value with manual serialize impl to make the wrapper transparent
+pub enum DecoderStreams {
+    Json { stream: serde_json::Deserializer<IoRead<BufReader<File>>> },
 
-#[derive(Debug, PartialEq)]
-pub enum Vals {
-    Json(JsonVal),
-    Toml(TomlVal),
+    Toml { data: TomlVal },
+
+    CsvStream { stream: BufReader<File> },
+
+    NdjsonStrean { stream: BufReader<File> },
 }
 
-// the impl
+pub enum WriterStreams {
+    LineByLine { iter: Box<dyn Iterator<Item = Vec<u8>>> },
 
-impl Serialize for Vals {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            Vals::Json(v) => v.serialize(serializer),
-            Vals::Toml(v) => v.serialize(serializer),
-        }
-    }
-}
-
-// main data type enum
-
-#[derive(Debug, PartialEq)]
-pub enum UniversalData {
-    Table {
-        headers: Vec<String>,
-        rows: Vec<Vec<String>>,
-    },
-    Structured(Vals),
+    Table { headers: Vec<String>, iter: Box<dyn Iterator<Item = Vec<u8>>> },
 }
 
 // Custom better expect trait for better error messages without duping code
