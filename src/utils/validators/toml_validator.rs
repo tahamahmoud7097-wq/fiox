@@ -6,7 +6,7 @@ use crate::utils::BetterExpect;
 /// then trying to serialize it and if it hits an error, it prints an error message like all other
 /// validators except for line numbers.
 pub fn validate_toml(path: &PathBuf, verbose: bool) {
-    let content = std::fs::read_to_string(path).better_expect(
+    let content = std::fs::read(path).better_expect(
         format!(
             "ERROR: Couldn't read input file [{}] for validation.",
             path.to_str().unwrap_or("[input.toml]")
@@ -16,7 +16,7 @@ pub fn validate_toml(path: &PathBuf, verbose: bool) {
     );
 
     // error printing
-    toml::from_str::<toml::Value>(&content).better_expect(
+    toml::from_slice::<toml::Value>(&content).better_expect(
         format!(
             "ERROR: Serialization error in input file [{}].",
             path.to_str().unwrap_or("[input.toml]")
