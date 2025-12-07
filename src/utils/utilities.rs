@@ -1,25 +1,35 @@
-use std::fs::File;
-use std::io::BufReader;
 use std::process::exit;
 
 use colored::Colorize;
-use serde_json::de::IoRead;
-use toml::Value as TomlVal;
 
-pub enum DecoderStreams {
-    Json { stream: serde_json::Deserializer<IoRead<BufReader<File>>> },
+use csv::ByteRecord;
 
-    Toml { data: TomlVal },
+pub enum WriterStreams<I: Iterator<Item = ByteTypes>> {
+    LineByLine { iter: I },
 
-    CsvStream { stream: BufReader<File> },
-
-    NdjsonStrean { stream: BufReader<File> },
+    Table { headers: Vec<String>, iter: I },
 }
 
-pub enum WriterStreams {
-    LineByLine { iter: Box<dyn Iterator<Item = Vec<u8>>> },
+pub enum ByteTypes {
+    Raw(Vec<u8>),
 
-    Table { headers: Vec<String>, iter: Box<dyn Iterator<Item = Vec<u8>>> },
+    Csv(ByteRecord),
+}
+
+pub fn into_raw_bytes(bytes: ByteTypes) -> Vec<u8> {
+    match bytes {
+        ByteTypes::Raw(raw_bytes) => raw_bytes,
+
+        ByteTypes::Csv(byte_record) => byte_record.as_slice().to_vec(),
+    }
+}
+
+pub fn into_byte_record(bytes: ByteTypes) -> ByteRecord {
+    match bytes {
+        ByteTypes::Csv(byte_record) => byte_record,
+
+        ByteTypes::Raw(_) => ByteRecord::new(),
+    }
 }
 
 // Custom better expect trait for better error messages without duping code

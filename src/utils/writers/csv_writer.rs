@@ -1,32 +1,53 @@
-use crate::{utilities::UniversalData, utils::BetterExpect};
-use colored::Colorize;
-use std::{path::PathBuf, process::exit};
+use crate::utils::{BetterExpect, ByteTypes, WriterStreams, into_byte_record};
+use std::path::PathBuf;
 
-pub fn csv_writer(data: &UniversalData, path: &PathBuf, verbose: bool) {
-    // Check if it's a table before writing.
-    if let UniversalData::Table { headers, rows } = data {
-        // Open CSV file for writing
-        let mut wtr = csv::Writer::from_path(path)
-            .better_expect("ERROR: Failed to open output CSV file.", verbose);
+pub fn csv_writer(
+    data_stream: WriterStreams<impl Iterator<Item = ByteTypes>>,
+    path: &PathBuf,
+    verbose: bool,
+) {
+    let mut wtr = csv::Writer::from_path(path).better_expect(
+        format!(
+            "ERROR: Couldn't open output file [{}] for writing.",
+            path.to_str().unwrap_or("[output.csv]")
+        )
+        .as_str(),
+        verbose,
+    );
 
-        // Write headers into the file.
-        wtr.write_record(headers)
-            .better_expect("ERROR: Failed to write CSV file headers.", verbose);
+    match data_stream {
+        WriterStreams::Table { headers, iter } => {
+            // write headers
+            wtr.write_record(&headers)
+                .better_expect("ERROR: Couldn't write file headers.", verbose);
 
-        // Loop for writing rows into the file.
-        for row in rows {
-            wtr.write_record(row).better_expect("ERROR: Failed to write CSV file rows.", verbose);
+            // write records
+            iter.enumerate().for_each(|(line_no, line)| {
+                wtr.write_record(&into_byte_record(line)).better_expect(
+                    format!(
+                        "ERROR: Couldn't write record [{}] into output file [{}].",
+                        line_no + 1,
+                        path.to_str().unwrap_or("[output.csv]")
+                    )
+                    .as_str(),
+                    verbose,
+                );
+            });
+
+            // flush writer
+            wtr.flush().better_expect(
+                format!(
+                    "ERROR: An error occurred while writing to the output file [{}]",
+                    path.to_str().unwrap_or("[output.csv]")
+                )
+                .as_str(),
+                verbose,
+            );
         }
-        wtr.flush().better_expect("ERROR: Failed to flush final CSV.", verbose);
-
-    // If data is not a table, then panics to prevent broken conversions.
-    } else {
-        eprintln!(
-            "{}",
-            "CSV only supports table based file types or files that can be converted into a table."
-                .red()
-                .bold()
-        );
-        exit(1);
+        WriterStreams::LineByLine { iter } => {
+            eprintln!("ERROR: CSV only supports table-based formats with headers.");
+            eprintln!("Support for non-table formats will be added soon.");
+            std::process::exit(1);
+        }
     }
 }
