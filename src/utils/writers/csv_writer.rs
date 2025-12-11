@@ -47,6 +47,7 @@ pub fn csv_writer(
             );
         }
         WriterStreams::LineByLine { iter } => {
+            iter.last();
             eprintln!(
                 "{}",
                 "ERROR: CSV only supports table-based formats with headers.".red().bold()
