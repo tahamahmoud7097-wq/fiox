@@ -1,17 +1,19 @@
 use std::{
-    fs::File,
+    fs::OpenOptions,
     io::{BufWriter, Write},
     path::PathBuf,
 };
 
-use crate::utils::{BetterExpect, ByteTypes, WriterStreams, into_raw_bytes};
+use serde_json::Value;
+
+use crate::utils::{BetterExpect, ByteTypes, WriterStreams, into_byte_record, into_raw_bytes};
 
 pub fn write_json(
     data_stream: WriterStreams<impl Iterator<Item = ByteTypes>>,
     path: &PathBuf,
     verbose: bool,
 ) {
-    let file = File::open(path).better_expect(
+    let file = OpenOptions::new().write(true).open(path).better_expect(
         format!(
             "ERROR: Couldn't open output file [{}] for writing.",
             path.to_str().unwrap_or("[output.json]")
@@ -25,10 +27,11 @@ pub fn write_json(
     match data_stream {
         WriterStreams::LineByLine { iter } => {
             iter.for_each(|obj| {
-                // get raw bytes from the `ByteTypes` enum, very cheap
-                let object = &into_raw_bytes(obj);
+                // turn raw bytes into a `serde_json::Value` tree
+                let json_object: Value = serde_json::from_slice(into_raw_bytes(obj).as_slice())
+                    .better_expect("ERROR: Invalid JSON error in input file.", verbose);
 
-                serde_json::to_writer_pretty(&mut buffered_writer, object).better_expect(
+                serde_json::to_writer_pretty(&mut buffered_writer, &json_object).better_expect(
                     format!(
                         "ERROR: Failed to write JSON into output file [{}].",
                         path.to_str().unwrap_or("[output.json]")
@@ -49,7 +52,108 @@ pub fn write_json(
         }
 
         WriterStreams::Table { headers, iter } => {
-            println!("Hello, World!");
+            // buffer for escapijg values which will get cleared after each value and
+            // reused instead of allocating a new `Vec<u8>` for every value
+            let mut esc_buf: Vec<u8> = Vec::with_capacity(10);
+
+            buffered_writer
+                .write(b"[\n")
+                .better_expect("ERROR: Failed to write opening bracket into output file.", verbose);
+
+            let headers: Vec<String> = headers
+                .iter()
+                .map(|h| {
+                    h.replace('\\', "\\\\")
+                        .replace('"', "\\\"")
+                        .replace('\t', "\\t")
+                        .replace('\r', "\\r")
+                })
+                .collect();
+
+            let mut first_obj = true;
+
+            iter.for_each(|rec| {
+                if first_obj {
+                    buffered_writer.write(b"  {\n").better_expect(
+                        "ERROR: Failed to write opening curly brace into output file.",
+                        verbose,
+                    );
+                    first_obj = false;
+                } else {
+                    buffered_writer.write(b",\n  {\n").better_expect(
+                        "ERROR: Failed to write opening curly brace into output file.",
+                        verbose,
+                    );
+                }
+
+                let mut first_value = true;
+
+                let record = into_byte_record(rec);
+                headers.iter().zip(record.iter()).for_each(|(h, v)| {
+                    esc_buf.clear();
+                    if v != b"true" || v != b"false" || v != b"null" || v != b"none" {
+                        esc_buf.push(b'"');
+                        v.iter().for_each(|byte| match byte {
+                            &b'\\' => {
+                                esc_buf.push(b'\\');
+                                esc_buf.push(b'\\');
+                            }
+                            &b'"' => {
+                                esc_buf.push(b'\\');
+                                esc_buf.push(b'"');
+                            }
+                            &b'\r' => {
+                                esc_buf.push(b'\\');
+                                esc_buf.push(b'r');
+                            }
+                            &b'\t' => {
+                                esc_buf.push(b'\\');
+                                esc_buf.push(b't');
+                            }
+                            _ => esc_buf.push(byte.clone()),
+                        });
+                        esc_buf.push(b'"');
+                    } else {
+                        esc_buf = v.to_vec();
+                    }
+                    if first_value {
+                        buffered_writer.write(b"    \"").better_expect(
+                            "ERROR: Failed to write quotes for key into output file.",
+                            verbose,
+                        );
+                        first_value = false;
+                    } else {
+                        buffered_writer.write(b",\n    \"").better_expect(
+                            "ERROR: Failed to write quotes for key into output file.",
+                            verbose,
+                        );
+                    }
+
+                    buffered_writer
+                        .write(h.as_bytes())
+                        .better_expect("ERROR: Failed to write key into output file.", verbose);
+
+                    buffered_writer.write(b"\": ").better_expect(
+                        "ERROR: Failed to write quotes for key into output file.",
+                        verbose,
+                    );
+
+                    buffered_writer
+                        .write(esc_buf.as_slice())
+                        .better_expect("ERROR: Failed to write value into output file.", verbose);
+                });
+                buffered_writer.write(b"  }").better_expect(
+                    "ERROR: Failed to write closing curly brace into output file.",
+                    verbose,
+                );
+            });
+            buffered_writer
+                .write(b"]")
+                .better_expect("ERROR: Failed to write closing bracket into output file.", verbose);
+
+            buffered_writer
+                .flush()
+                .better_expect("ERROR: Failed to flush final writer bytes.", verbose);
         }
     }
 }

@@ -6,11 +6,11 @@ use clap::{Parser, Subcommand, ValueHint::FilePath};
 #[command(
     author,
     version,
-    about = "A blazingly fast utility fot converting between file formats.",
+    about = "A blazingly fast utility for handling files with different formats.",
     long_about = r#"
-Fiox, a blazingly fast, streaming-first file converter.
+Fiox, a blazingly fast, streaming-first file handler.
 
-• It supports JSON, TOML, CSV, and soon NDJSON.
+• It supports JSON, TOML, CSV, and NDJSON.
 • Formats are detected automatically based on file extension.
 • Streams files instead of loading them into memory all at once.
 • Supports file conversions and file validation.
@@ -34,7 +34,7 @@ pub struct FioxArgs {
 #[derive(Subcommand)]
 pub enum Commands {
     /// Convert command that takes two positional arguments for input and output, takes one
-    /// flag [`verbose`] which enables extra logs and backtraces.
+    /// flag [`verbose`] which enables extra logs and soon backtraces.
     Convert {
         /// flag for extra debug logging
         #[arg(short, long)]
@@ -50,7 +50,7 @@ pub enum Commands {
     },
 
     /// Validate command for file format validation with one positional argument for the file
-    /// to be checked and a flag [`verbose`] which enables extra logs, backtraces and exact
+    /// to be checked and a flag [`verbose`] which enables extra logs, backtraces (coming soon!) and exact
     /// line errors.
     Validate {
         /// path to the file to be validated

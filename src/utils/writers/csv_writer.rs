@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 use crate::utils::{BetterExpect, ByteTypes, WriterStreams, into_byte_record};
 use std::path::PathBuf;
 
@@ -45,7 +47,10 @@ pub fn csv_writer(
             );
         }
         WriterStreams::LineByLine { iter } => {
-            eprintln!("ERROR: CSV only supports table-based formats with headers.");
+            eprintln!(
+                "{}",
+                "ERROR: CSV only supports table-based formats with headers.".red().bold()
+            );
             eprintln!("Support for non-table formats will be added soon.");
             std::process::exit(1);
         }
