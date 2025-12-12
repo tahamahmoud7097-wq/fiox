@@ -1,13 +1,9 @@
 use colored::Colorize;
 
-use crate::utils::{BetterExpect, ByteTypes, WriterStreams, into_byte_record};
+use crate::utils::{BetterExpect, WriterStreams, into_byte_record};
 use std::path::PathBuf;
 
-pub fn csv_writer(
-    data_stream: WriterStreams<impl Iterator<Item = ByteTypes>>,
-    path: &PathBuf,
-    verbose: bool,
-) {
+pub fn csv_writer(data_stream: WriterStreams, path: &PathBuf, verbose: bool) {
     let mut wtr = csv::Writer::from_path(path).better_expect(
         format!(
             "ERROR: Couldn't open output file [{}] for writing.",

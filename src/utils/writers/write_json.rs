@@ -6,13 +6,9 @@ use std::{
 
 use serde_json::Value;
 
-use crate::utils::{BetterExpect, ByteTypes, WriterStreams, into_byte_record, into_raw_bytes};
+use crate::utils::{BetterExpect, WriterStreams, into_byte_record, into_raw_bytes};
 
-pub fn write_json(
-    data_stream: WriterStreams<impl Iterator<Item = ByteTypes>>,
-    path: &PathBuf,
-    verbose: bool,
-) {
+pub fn write_json(data_stream: WriterStreams, path: &PathBuf, verbose: bool) {
     let file = OpenOptions::new().write(true).open(path).better_expect(
         format!(
             "ERROR: Couldn't open output file [{}] for writing.",
@@ -91,26 +87,26 @@ pub fn write_json(
                 let record = into_byte_record(rec);
                 headers.iter().zip(record.iter()).for_each(|(h, v)| {
                     esc_buf.clear();
-                    if v != b"true" || v != b"false" || v != b"null" || v != b"none" {
+                    if !matches!(v, b"true" | b"false" | b"null") {
                         esc_buf.push(b'"');
-                        v.iter().for_each(|byte| match byte {
-                            &b'\\' => {
+                        v.iter().for_each(|byte| match *byte {
+                            b'\\' => {
                                 esc_buf.push(b'\\');
                                 esc_buf.push(b'\\');
                             }
-                            &b'"' => {
+                            b'"' => {
                                 esc_buf.push(b'\\');
                                 esc_buf.push(b'"');
                             }
-                            &b'\r' => {
+                            b'\r' => {
                                 esc_buf.push(b'\\');
                                 esc_buf.push(b'r');
                             }
-                            &b'\t' => {
+                            b'\t' => {
                                 esc_buf.push(b'\\');
                                 esc_buf.push(b't');
                             }
-                            _ => esc_buf.push(byte.clone()),
+                            _ => esc_buf.push(*byte),
                         });
                         esc_buf.push(b'"');
                     } else {

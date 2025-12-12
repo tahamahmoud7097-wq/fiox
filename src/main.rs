@@ -2,7 +2,6 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-mod tests;
 mod utils;
 use clap::Parser;
 use colored::Colorize;
@@ -51,10 +50,12 @@ fn main() {
 
             let now = std::time::Instant::now();
 
-            let data: UniversalData = match input_ext {
-                "json" => json_reader::json_reader(&input, verbose),
-                "toml" => toml_reader::toml_reader(&input, verbose),
-                "csv" => csv_reader::csv_reader(&input, verbose),
+            let data = match input_ext {
+                "json" => {
+                    json_decoder::json_decoder(json_reader::json_reader(&input, verbose), verbose)
+                }
+                "toml" => toml_decoder::toml_decoder(toml_reader::toml_reader(&input, verbose)),
+                "csv" => csv_decoder::csv_decoder(csv_reader::csv_reader(&input, verbose), verbose),
                 _ => {
                     eprintln!(
                         "{} \n Open an issue at {}",
@@ -70,9 +71,9 @@ fn main() {
                 }
             };
             match output_ext {
-                "json" => write_json::write_json(&data, &output, verbose),
-                "toml" => toml_writer::toml_writer(&data, &output, verbose),
-                "csv" => csv_writer::csv_writer(&data, &output, verbose),
+                "json" => write_json::write_json(data, &output, verbose),
+                "toml" => toml_writer::toml_writer(data, &output, verbose),
+                "csv" => csv_writer::csv_writer(data, &output, verbose),
                 _ => {
                     eprintln!(
                         "{} \n Open an issue at {}",

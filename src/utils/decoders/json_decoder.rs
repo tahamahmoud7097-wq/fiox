@@ -5,7 +5,7 @@ use crate::utils::{BetterExpect, ByteTypes, WriterStreams};
 pub fn json_decoder(
     reader: serde_json::Deserializer<serde_json::de::IoRead<BufReader<File>>>,
     verbose: bool,
-) -> WriterStreams<impl Iterator<Item = ByteTypes>> {
+) -> WriterStreams {
     let iter = reader.into_iter::<serde_json::Value>().map(move |obj| {
         // SAFETY: to_vec only fails on OOM, which is unrecoverable
         // I set verbose=true to show full error details since this indicates
@@ -21,5 +21,5 @@ pub fn json_decoder(
         )
     });
 
-    WriterStreams::LineByLine { iter }
+    WriterStreams::LineByLine { iter: Box::new(iter) }
 }

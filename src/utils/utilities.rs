@@ -4,10 +4,10 @@ use colored::Colorize;
 
 use csv::ByteRecord;
 
-pub enum WriterStreams<I: Iterator<Item = ByteTypes>> {
-    LineByLine { iter: I },
+pub enum WriterStreams {
+    LineByLine { iter: Box<dyn Iterator<Item = ByteTypes>> },
 
-    Table { headers: Vec<String>, iter: I },
+    Table { headers: Vec<String>, iter: Box<dyn Iterator<Item = ByteTypes>> },
 }
 
 pub enum ByteTypes {
