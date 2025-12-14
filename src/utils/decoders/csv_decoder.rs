@@ -2,7 +2,10 @@ use std::{fs::File, io::BufReader};
 
 use crate::utils::{BetterExpect, DataTypes, WriterStreams};
 
-pub fn csv_decoder(mut reader: csv::Reader<BufReader<File>>, verbose: bool) -> WriterStreams {
+pub fn csv_decoder(
+    mut reader: csv::Reader<BufReader<File>>,
+    verbose: bool,
+) -> WriterStreams<impl Iterator<Item = DataTypes>> {
     let headers = reader
         .headers()
         .better_expect("ERROR: Failed to read input file headers.", verbose)
@@ -11,14 +14,11 @@ pub fn csv_decoder(mut reader: csv::Reader<BufReader<File>>, verbose: bool) -> W
         .collect::<Vec<String>>();
 
     let iter = reader.into_byte_records().enumerate().map(move |(line_no, rec)| {
-        DataTypes::Csv(
-            rec.better_expect(
-                format!("ERROR: Serialization error in input file at record [{}].", line_no + 1)
-                    .as_str(),
-                verbose,
-            ),
-        )
+        DataTypes::Csv(rec.better_expect(
+            format!("ERROR: Serialization error in input file at record [{}].", line_no).as_str(),
+            verbose,
+        ))
     });
 
-    WriterStreams::Table { headers, iter: Box::new(iter) }
+    WriterStreams::Table { headers, iter }
 }

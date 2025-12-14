@@ -9,7 +9,7 @@ pub fn csv_reader(path: &PathBuf, verbose: bool) -> csv::Reader<BufReader<File>>
         verbose,
     );
 
-    let buffered_reader = BufReader::with_capacity(16384, file);
+    let buffered_reader = BufReader::with_capacity(256 * 1024, file);
 
     csv::Reader::from_reader(buffered_reader)
 }

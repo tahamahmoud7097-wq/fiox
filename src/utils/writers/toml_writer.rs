@@ -6,9 +6,13 @@ use std::{
 
 use toml::map::Map;
 
-use crate::utils::{BetterExpect, WriterStreams, into_byte_record};
+use crate::utils::{BetterExpect, DataTypes, WriterStreams, into_byte_record};
 
-pub fn toml_writer(data_stream: WriterStreams, path: &PathBuf, verbose: bool) {
+pub fn toml_writer(
+    data_stream: WriterStreams<impl Iterator<Item = DataTypes>>,
+    path: &PathBuf,
+    verbose: bool,
+) {
     let file = OpenOptions::new().write(true).open(path).better_expect(
         format!(
             "ERROR: Failed to open output file [{}] for writing.",
@@ -136,5 +140,7 @@ pub fn toml_writer(data_stream: WriterStreams, path: &PathBuf, verbose: bool) {
                 });
             });
         }
+
+        _ => {}
     }
 }

@@ -12,7 +12,7 @@ pub fn json_reader(
         verbose,
     );
 
-    let buffered = BufReader::with_capacity(16384, file);
+    let buffered = BufReader::with_capacity(256 * 1024, file);
 
     serde_json::Deserializer::from_reader(buffered)
 }

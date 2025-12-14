@@ -4,9 +4,13 @@ use std::{
     path::PathBuf,
 };
 
-use crate::utils::{BetterExpect, WriterStreams, into_byte_record};
+use crate::utils::{BetterExpect, DataTypes, WriterStreams, into_byte_record};
 
-pub fn write_json(data_stream: WriterStreams, path: &PathBuf, verbose: bool) {
+pub fn write_json(
+    data_stream: WriterStreams<impl Iterator<Item = DataTypes>>,
+    path: &PathBuf,
+    verbose: bool,
+) {
     let file = OpenOptions::new().write(true).open(path).better_expect(
         format!(
             "ERROR: Couldn't open output file [{}] for writing.",
@@ -64,13 +68,13 @@ pub fn write_json(data_stream: WriterStreams, path: &PathBuf, verbose: bool) {
 
             iter.for_each(|rec| {
                 if first_obj {
-                    buffered_writer.write(b"  {\n").better_expect(
+                    buffered_writer.write_all(b"  {\n").better_expect(
                         "ERROR: Failed to write opening curly brace into output file.",
                         verbose,
                     );
                     first_obj = false;
                 } else {
-                    buffered_writer.write(b",\n  {\n").better_expect(
+                    buffered_writer.write_all(b",\n  {\n").better_expect(
                         "ERROR: Failed to write opening curly brace into output file.",
                         verbose,
                     );
@@ -120,30 +124,32 @@ pub fn write_json(data_stream: WriterStreams, path: &PathBuf, verbose: bool) {
                     }
 
                     buffered_writer
-                        .write(h.as_bytes())
+                        .write_all(h.as_bytes())
                         .better_expect("ERROR: Failed to write key into output file.", verbose);
 
-                    buffered_writer.write(b"\": ").better_expect(
+                    buffered_writer.write_all(b"\": ").better_expect(
                         "ERROR: Failed to write quotes for key into output file.",
                         verbose,
                     );
 
                     buffered_writer
-                        .write(esc_buf.as_slice())
+                        .write_all(esc_buf.as_slice())
                         .better_expect("ERROR: Failed to write value into output file.", verbose);
                 });
-                buffered_writer.write(b"\n  }").better_expect(
+                buffered_writer.write_all(b"\n  }").better_expect(
                     "ERROR: Failed to write closing curly brace into output file.",
                     verbose,
                 );
             });
             buffered_writer
-                .write(b"\n]")
+                .write_all(b"\n]")
                 .better_expect("ERROR: Failed to write closing bracket into output file.", verbose);
 
             buffered_writer
                 .flush()
                 .better_expect("ERROR: Failed to flush final writer bytes.", verbose);
         }
+
+        _ => {}
     }
 }

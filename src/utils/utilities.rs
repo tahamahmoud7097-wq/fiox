@@ -5,10 +5,15 @@ use colored::Colorize;
 use csv::ByteRecord;
 use serde::Serialize;
 
-pub enum WriterStreams {
-    Values { iter: Box<dyn Iterator<Item = DataTypes>> },
+pub enum WriterStreams<I>
+where
+    I: Iterator<Item = DataTypes>,
+{
+    Values { iter: I },
 
-    Table { headers: Vec<String>, iter: Box<dyn Iterator<Item = DataTypes>> },
+    Table { headers: Vec<String>, iter: I },
+
+    Temp {},
 }
 
 pub enum DataTypes {
