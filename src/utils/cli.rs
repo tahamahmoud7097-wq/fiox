@@ -45,8 +45,17 @@ pub enum Commands {
         input: PathBuf,
 
         /// Argument for output file path
-        #[arg(required = true, value_hint = FilePath)]
+        #[arg(short, long, required = true, value_hint = FilePath)]
         output: PathBuf,
+
+        /// Argument to append into output file instead of overwriting it (WARNING: This
+        /// can lead to unexpected output on some formats)
+        #[arg(short, long)]
+        append: bool,
+
+        /// Argument for actually parsing numbers in manual TOML / JSON writers
+        #[arg(short, long)]
+        parse_numbers: bool,
     },
 
     /// Validate command for file format validation with one positional argument for the file

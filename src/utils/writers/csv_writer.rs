@@ -2,21 +2,15 @@ use colored::Colorize;
 
 use crate::utils::{BetterExpect, DataTypes, WriterStreams, into_byte_record};
 
-use std::path::PathBuf;
+use std::io::BufWriter;
 
 pub fn csv_writer(
     data_stream: WriterStreams<impl Iterator<Item = DataTypes>>,
-    path: &PathBuf,
+    file: std::fs::File,
     verbose: bool,
 ) {
-    let mut wtr = csv::Writer::from_path(path).better_expect(
-        format!(
-            "ERROR: Couldn't open output file [{}] for writing.",
-            path.to_str().unwrap_or("[output.csv]")
-        )
-        .as_str(),
-        verbose,
-    );
+    let buffered = BufWriter::new(file);
+    let mut wtr = csv::Writer::from_writer(buffered);
 
     match data_stream {
         WriterStreams::Table { headers, iter } => {
@@ -27,23 +21,15 @@ pub fn csv_writer(
             // write records
             iter.enumerate().for_each(|(line_no, line)| {
                 wtr.write_record(&into_byte_record(line)).better_expect(
-                    format!(
-                        "ERROR: Couldn't write record [{}] into output file [{}].",
-                        line_no + 1,
-                        path.to_str().unwrap_or("[output.csv]")
-                    )
-                    .as_str(),
+                    format!("ERROR: Couldn't write record [{}] into output file.", line_no,)
+                        .as_str(),
                     verbose,
                 );
             });
 
             // flush writer
             wtr.flush().better_expect(
-                format!(
-                    "ERROR: An error occurred while writing to the output file [{}]",
-                    path.to_str().unwrap_or("[output.csv]")
-                )
-                .as_str(),
+                "ERROR: An error occurred while writing to the output file",
                 verbose,
             );
         }

@@ -1,8 +1,4 @@
-use std::{
-    fs::OpenOptions,
-    io::{BufWriter, Write},
-    path::PathBuf,
-};
+use std::io::{BufWriter, Write};
 
 use toml::map::Map;
 
@@ -10,18 +6,10 @@ use crate::utils::{BetterExpect, DataTypes, WriterStreams, into_byte_record};
 
 pub fn toml_writer(
     data_stream: WriterStreams<impl Iterator<Item = DataTypes>>,
-    path: &PathBuf,
+    file: std::fs::File,
     verbose: bool,
+    parse_numbers: bool,
 ) {
-    let file = OpenOptions::new().write(true).open(path).better_expect(
-        format!(
-            "ERROR: Failed to open output file [{}] for writing.",
-            path.to_str().unwrap_or("[output.toml]")
-        )
-        .as_str(),
-        verbose,
-    );
-
     let mut buffered_writer = BufWriter::new(file);
 
     match data_stream {
@@ -43,11 +31,7 @@ pub fn toml_writer(
                     .better_expect("INTERNAL ERROR: Failed to turn TOML into bytes for writing (possible OOM or deeply nested data)!", true)
                     .as_bytes())
                     .better_expect(
-                    format!("ERROR: Failed to write TOML into output file [{}].", 
-                            path
-                                .to_str()
-                                .unwrap_or("[output.toml]"))
-                            .as_str(), 
+                    "ERROR: Failed to write TOML into output file.", 
                          verbose
                     );
             });
@@ -76,22 +60,23 @@ pub fn toml_writer(
                 .collect();
 
             iter.for_each(|rec| {
-                buffered_writer.write(b"\n[[Rows]]\n").better_expect(
-                    format!(
-                        "ERROR: Failed to write into output file [{}].",
-                        path.to_str().unwrap_or("[output.toml]")
-                    )
-                    .as_str(),
-                    verbose,
-                );
+                buffered_writer
+                    .write(b"\n[[Rows]]\n")
+                    .better_expect("ERROR: Failed to write into output file.", verbose);
 
                 let record = into_byte_record(rec);
 
                 headers.iter().zip(record.iter()).for_each(|(h, v)| {
                     esc_buf.clear();
 
-                    if matches!(v, b"true" | b"false") {
-                        esc_buf = v.to_vec();
+                    if matches!(v, b"true" | b"false")
+                        || (parse_numbers
+                            && v.first()
+                                .is_some_and(|b| *b == b'-' || *b == b'+' || b.is_ascii_digit())
+                            && v.last().is_some_and(|b| b.is_ascii_digit())
+                            && std::str::from_utf8(v).unwrap_or("").parse::<f64>().is_ok())
+                    {
+                        esc_buf.extend_from_slice(v);
                     } else {
                         esc_buf.push(b'"');
                         v.iter().for_each(|byte| match *byte {

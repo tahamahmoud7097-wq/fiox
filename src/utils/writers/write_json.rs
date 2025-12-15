@@ -1,38 +1,20 @@
-use std::{
-    fs::OpenOptions,
-    io::{BufWriter, Write},
-    path::PathBuf,
-};
+use std::io::{BufWriter, Write};
 
 use crate::utils::{BetterExpect, DataTypes, WriterStreams, into_byte_record};
 
 pub fn write_json(
     data_stream: WriterStreams<impl Iterator<Item = DataTypes>>,
-    path: &PathBuf,
+    file: std::fs::File,
     verbose: bool,
+    parse_numbers: bool,
 ) {
-    let file = OpenOptions::new().write(true).open(path).better_expect(
-        format!(
-            "ERROR: Couldn't open output file [{}] for writing.",
-            path.to_str().unwrap_or("[output.json]")
-        )
-        .as_str(),
-        verbose,
-    );
-
     let mut buffered_writer = BufWriter::new(&file);
 
     match data_stream {
         WriterStreams::Values { iter } => {
             iter.for_each(|obj| {
-                serde_json::to_writer_pretty(&mut buffered_writer, &obj).better_expect(
-                    format!(
-                        "ERROR: Failed to write JSON into output file [{}].",
-                        path.to_str().unwrap_or("[output.json]")
-                    )
-                    .as_str(),
-                    verbose,
-                );
+                serde_json::to_writer_pretty(&mut buffered_writer, &obj)
+                    .better_expect("ERROR: Failed to write JSON into output file [{}].", verbose);
 
                 writeln!(buffered_writer).better_expect(
                     "ERROR: Failed to write a newline into the output file.",
@@ -85,7 +67,15 @@ pub fn write_json(
                 let record = into_byte_record(rec);
                 headers.iter().zip(record.iter()).for_each(|(h, v)| {
                     esc_buf.clear();
-                    if !matches!(v, b"true" | b"false" | b"null") {
+                    if matches!(v, b"true" | b"false" | b"null")
+                        || (parse_numbers
+                            && v.first()
+                                .is_some_and(|b| *b == b'-' || *b == b'+' || b.is_ascii_digit())
+                            && v.last().is_some_and(|b| b.is_ascii_digit())
+                            && std::str::from_utf8(v).unwrap_or("").parse::<f64>().is_ok())
+                    {
+                        esc_buf.extend_from_slice(v);
+                    } else {
                         esc_buf.push(b'"');
                         v.iter().for_each(|byte| match *byte {
                             b'\\' => {
@@ -107,8 +97,6 @@ pub fn write_json(
                             _ => esc_buf.push(*byte),
                         });
                         esc_buf.push(b'"');
-                    } else {
-                        esc_buf = v.to_vec();
                     }
                     if first_value {
                         buffered_writer.write(b"    \"").better_expect(
